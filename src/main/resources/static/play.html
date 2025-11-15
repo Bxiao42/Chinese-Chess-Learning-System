@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8" />
+    <title>Player vs AI - Chinese Chess</title>
+    <style>
+        :root{ --cell:50px; }
+        body{
+            margin:0;
+            padding:20px;
+            display:flex;
+            gap:80px;
+            font-family:system-ui, sans-serif;
+            background:#fafafb;
+            justify-content: center;
+        }
+        #gameArea{
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+        }
+        #leftCol{
+            display:flex;
+            flex-direction:column;
+            gap:15px;
+            align-items:center;
+            flex: 0 0 auto;
+        }
+        #board{
+            border:1px solid #222;
+            background:#fefefe;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .toolbar{
+            display:flex;
+            gap:8px;
+            align-items:center;
+            flex-wrap:wrap;
+        }
+        button{
+            padding:8px 14px;
+            border-radius:10px;
+            border:1px solid #ddd;
+            background:#fff;
+            cursor:pointer;
+            font-size:14px;
+        }
+        button:hover{
+            box-shadow:0 4px 12px rgba(0,0,0,.08);
+        }
+        h3{
+            margin:.2rem 0;
+            color: #333;
+        }
+        table{
+            border-collapse:collapse;
+            background:#fff;
+            border-radius:12px;
+            overflow:hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        th,td{
+            border:1px solid #eee;
+            padding:8px 10px;
+            font-size:14px;
+            text-align:center;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        #foulTable{
+            width:360px;
+        }
+        .hint{
+            color:#888;
+            font-size:12px;
+        }
+        #statusBar{
+            margin:15px 0;
+            padding:10px 12px;
+            border:1px solid #e0e0e0;
+            background:#f8f9fa;
+            border-radius:8px;
+            color:#444;
+            min-height: 20px;
+            font-weight: 500;
+        }
+
+        .game-over {
+            background: #fff3cd !important;
+            border-color: #ffeaa7 !important;
+            color: #856404 !important;
+            font-weight: bold !important;
+        }
+
+        .win-message {
+            background: #d1ecf1 !important;
+            border-color: #bee5eb !important;
+            color: #0c5460 !important;
+        }
+
+        .lose-message {
+            background: #f8d7da !important;
+            border-color: #f5c6cb !important;
+            color: #721c24 !important;
+        }
+
+        #rightCol {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-left: 60px;
+        }
+
+        .game-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        #gameOverMessage {
+            display: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div id="gameArea">
+    <div class="game-container">
+        <div id="leftCol">
+            <canvas id="board" width="450" height="500"></canvas>
+            <div class="toolbar">
+                <button onclick="newGame()">New Game</button>
+                <span class="hint">Red moves first: Click to select piece, then click target square</span>
+            </div>
+        </div>
+
+        <div id="rightCol">
+            <div id="statusBar">Status: Game preparing...</div>
+
+            <div id="gameOverMessage"></div>
+
+            <h3>Foul Records</h3>
+            <table id="foulTable">
+                <thead><tr><th>#</th><th>Type</th></tr></thead>
+                <tbody id="foulBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ========== Canvas & DPR ========== */
+    const cvs = document.getElementById('board');
+    const ctx = cvs.getContext('2d');
+    const DPR = window.devicePixelRatio || 1;
+    const LOGICAL_W = 450, LOGICAL_H = 500;
+    cvs.style.width  = LOGICAL_W + 'px';
+    cvs.style.height = LOGICAL_H + 'px';
+    cvs.width  = Math.round(LOGICAL_W * DPR);
+    cvs.height = Math.round(LOGICAL_H * DPR);
+    ctx.scale(DPR, DPR);
+
+    /* ========== Fixed padding ========== */
+    const PAD_L = 24, PAD_R = 24, PAD_T = 22, PAD_B = 22;
+
+    /* ========== Geometry ========== */
+    const OUT_W = LOGICAL_W, OUT_H = LOGICAL_H;
+    const COLS = 9, ROWS = 10;
+    const INNER_X = PAD_L;
+    const INNER_Y = PAD_T;
+    const INNER_W = OUT_W - PAD_L - PAD_R;
+    const INNER_H = OUT_H - PAD_T - PAD_B;
+    const CELL_W  = INNER_W / COLS;
+    const CELL_H  = INNER_H / ROWS;
+
+    /* ========== Resources & Game state ========== */
+    const RED='r', BLACK='b';
+    const SPRITES = {
+        board: '/images/MAIN.GIF',
+        RR:'/images/RR.GIF', RN:'/images/RN.GIF', RB:'/images/RB.GIF',
+        RA:'/images/RA.GIF', RK:'/images/RK.GIF', RC:'/images/RC.GIF', RP:'/images/RP.GIF',
+        BR:'/images/BR.GIF', BN:'/images/BN.GIF', BB:'/images/BB.GIF',
+        BA:'/images/BA.GIF', BK:'/images/BK.GIF', BC:'/images/BC.GIF', BP:'/images/BP.GIF',
+    };
+    const IMGS = {};
+    function loadImage(src){ return new Promise(r=>{ const i=new Image(); i.onload=()=>r(i); i.onerror=()=>r(null); i.src=src; }); }
+    async function preload(){
+        IMGS.board = await loadImage(SPRITES.board);
+        await Promise.all(Object.keys(SPRITES).filter(k=>k!=='board').map(async k=>IMGS[k]=await loadImage(SPRITES[k])));
+    }
+    function imgKeyOf(p){
+        if(!p) return null;
+        const mapR = {R:'RR', H:'RN', E:'RB', A:'RA', K:'RK', C:'RC', P:'RP'};
+        const mapB = {R:'BR', H:'BN', E:'BB', A:'BA', K:'BK', C:'BC', P:'BP'};
+        return p.s===RED ? mapR[p.t] : mapB[p.t];
+    }
+
+    let board = initialBoard();
+    let select = null;
+    let locked = false;
+    let gameStatus = 'preparing';
+
+    /* —— Memory rows for CSV —— */
+    let foulRows  = []; // Each row: [#, Type]
+
+    function initialBoard(){
+        const B = Array.from({length:ROWS}, ()=>Array(COLS).fill(null));
+        // Black
+        put(B,0,0,BLACK,'R'); put(B,0,1,BLACK,'H'); put(B,0,2,BLACK,'E'); put(B,0,3,BLACK,'A'); put(B,0,4,BLACK,'K');
+        put(B,0,5,BLACK,'A'); put(B,0,6,BLACK,'E'); put(B,0,7,BLACK,'H'); put(B,0,8,BLACK,'R');
+        put(B,2,1,BLACK,'C'); put(B,2,7,BLACK,'C');
+        for(let c=0;c<9;c+=2) put(B,3,c,BLACK,'P');
+        // Red
+        put(B,9,0,RED,'R'); put(B,9,1,RED,'H'); put(B,9,2,RED,'E'); put(B,9,3,RED,'A'); put(B,9,4,RED,'K');
+        put(B,9,5,RED,'A'); put(B,9,6,RED,'E'); put(B,9,7,RED,'H'); put(B,9,8,RED,'R');
+        put(B,7,1,RED,'C'); put(B,7,7,RED,'C');
+        for(let c=0;c<9;c+=2) put(B,6,c,RED,'P');
+        return B;
+    }
+    function put(B,r,c,s,t){ B[r][c]={s,t}; }
+
+    /* ========== Drawing ========== */
+    function drawPieces(){
+        const size = Math.min(CELL_W, CELL_H) * 0.86, rds = size/2;
+        for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+            const p = board[r][c]; if(!p) continue;
+            const x = INNER_X + c*CELL_W + CELL_W/2;
+            const y = INNER_Y + r*CELL_H + CELL_H/2;
+            const key = imgKeyOf(p), sp = IMGS[key];
+            if(sp){ ctx.drawImage(sp, x-rds, y-rds, size, size); }
+            else{
+                ctx.beginPath(); ctx.arc(x,y,rds,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill(); ctx.stroke();
+                ctx.fillStyle = (p.s===RED)?'#c00':'#222';
+                ctx.font='bold 20px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+                const glyph={R:'车',H:'马',E:'相',A:'仕',K:'帅',C:'炮',P:'兵'}[p.t]||'?';
+                ctx.fillText(glyph,x,y);
+            }
+        }
+    }
+    function draw(){
+        ctx.clearRect(0,0,OUT_W,OUT_H);
+        if(IMGS.board){ ctx.drawImage(IMGS.board, 0, 0, OUT_W, OUT_H); }
+        if(select){
+            ctx.fillStyle='rgba(0,128,255,.12)';
+            ctx.fillRect(INNER_X + select.c*CELL_W, INNER_Y + select.r*CELL_H, CELL_W, CELL_H);
+        }
+        drawPieces();
+    }
+
+    /* ========== Click detection ========== */
+    function hitToCell(x,y){
+        const gx = x - INNER_X, gy = y - INNER_Y;
+        if(gx < 0 || gy < 0 || gx > INNER_W || gy > INNER_H) return null;
+        const c = Math.floor(gx / CELL_W);
+        const r = Math.floor(gy / CELL_H);
+        if(c<0||c>=COLS||r<0||r>=ROWS) return null;
+        return {r,c};
+    }
+
+    cvs.addEventListener('click', async e=>{
+        if (locked || gameStatus === 'finished') return;
+        const rect = cvs.getBoundingClientRect();
+        const x = (e.clientX - rect.left);
+        const y = (e.clientY - rect.top);
+        const cell = hitToCell(x,y);
+        if(!cell) return;
+
+        const {r,c} = cell;
+        if(!select){
+            const p = board[r][c];
+            if(p && p.s===RED){ select={r,c}; draw(); }
+            return;
+        }else{
+            const from = {...select};
+            select = null; draw();
+            if(from.r===r && from.c===c) return;
+            await doMove(from.r, from.c, r, c);
+        }
+    });
+
+    /* ========== UCI application & tables ========== */
+    function applyUci(uci){
+        if (!uci || uci.length < 4) return;
+        const fromC = uci.charCodeAt(0) - 97;
+        const fromR = 9 - parseInt(uci[1],10);
+        const toC   = uci.charCodeAt(2) - 97;
+        const toR   = 9 - parseInt(uci[3],10);
+        const p = board[fromR][fromC];
+        if(!p) return;
+        board[toR][toC] = p;
+        board[fromR][fromC] = null;
+    }
+    function pushFoul(cnt, type = 'Illegal move'){
+        document.getElementById('foulBody')
+            .insertAdjacentHTML('beforeend', `<tr><td>${cnt}</td><td>${type}</td></tr>`);
+        foulRows.push([cnt, type]);
+    }
+
+    /* ========== Status updates ========== */
+    function updateStatusBar(message, type = 'normal') {
+        const bar = document.getElementById('statusBar');
+        bar.textContent = `Status: ${message}`;
+        bar.className = '';
+        if (type === 'game-over') bar.classList.add('game-over');
+        if (type === 'win-message') bar.classList.add('win-message');
+        if (type === 'lose-message') bar.classList.add('lose-message');
+    }
+
+    function showGameOverMessage(message, isWin = false) {
+        const messageDiv = document.getElementById('gameOverMessage');
+        messageDiv.textContent = message;
+        messageDiv.style.display = 'block';
+        if (isWin) {
+            messageDiv.classList.add('win-message');
+            messageDiv.classList.remove('lose-message');
+        } else {
+            messageDiv.classList.add('lose-message');
+            messageDiv.classList.remove('win-message');
+        }
+    }
+
+    function hideGameOverMessage() {
+        document.getElementById('gameOverMessage').style.display = 'none';
+        document.getElementById('gameOverMessage').className = '';
+    }
+
+    /* ========== Game control ========== */
+    async function newGame(){
+        // Reset state
+        foulRows  = [];
+        locked = false;
+        gameStatus = 'playing';
+
+        await fetch('/api/xq/new', {method:'POST'});
+        board = initialBoard();
+        select = null;
+
+        document.getElementById('foulBody').innerHTML = '';
+        updateStatusBar('Game started - Red moves first');
+        hideGameOverMessage();
+        draw();
+    }
+
+    /* ========== Backend communication ========== */
+    async function doMove(fromR,fromC,toR,toC){
+        try{
+            const res = await fetch('/api/xq/move',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({fromR,fromC,toR,toC})
+            });
+            const data = await res.json();
+            handleMoveResult(data);
+
+        }catch(err){
+            alert('Communication failed: ' + err);
+        }
+    }
+
+    function handleMoveResult(data) {
+        const bar = document.getElementById('statusBar');
+
+        if (data.result === 'game_over') {
+            locked = true;
+            gameStatus = 'finished';
+            handleGameResult(data);
+            return;
+        }
+
+        if(data.result === 'foul'){
+            pushFoul(data.foulCount, data.message || 'Illegal move');
+            updateStatusBar('Illegal move! Please choose a legal move', 'lose-message');
+            return;
+        }
+
+        if(data.result === 'ok'){
+            // Apply moves
+            applyUci(data.playerMove);
+            if (data.aiMove) applyUci(data.aiMove);
+            draw();
+
+            // Handle check status
+            if (data.meInCheck) {
+                updateStatusBar('You are in check! Please resolve check', 'game-over');
+            } else if (data.oppInCheck) {
+                updateStatusBar('Opponent is in check', 'normal');
+            } else {
+                updateStatusBar('In progress', 'normal');
+            }
+        }
+    }
+
+    function handleGameResult(data) {
+        locked = true;
+        gameStatus = 'finished';
+
+        let message = data.resultDescription || data.gameResult || 'Game over';
+        let isWin = false;
+
+        if (data.result === 'game_over') {
+            if (data.winner === 'RED') {
+                message = 'Congratulations! You checkmated the AI!';
+                isWin = true;
+            } else if (data.winner === 'BLACK') {
+                message = 'AI checkmated you!';
+            } else {
+                message = data.gameResult || 'Draw!';
+            }
+        }
+
+        updateStatusBar(message, isWin ? 'win-message' : 'lose-message');
+        showGameOverMessage(message, isWin);
+
+        // Apply any unapplied moves
+        if (data.playerMove) applyUci(data.playerMove);
+        if (data.aiMove) applyUci(data.aiMove);
+        draw();
+
+        // CSV auto export, no alerts shown
+    }
+
+    /* ========== Startup ========== */
+    (async function(){
+        await preload();
+        await newGame();
+    })();
+</script>
+</body>
+</html>

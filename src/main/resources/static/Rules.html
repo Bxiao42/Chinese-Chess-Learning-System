@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Chinese Chess · Instructions and Rules</title>
+    <style>
+        /* Minimalist style: white background, black text */
+        html,body {
+            background:#ffffff; color:#000000;
+            margin:0; padding:0;
+            font-family:-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+            line-height:1.6;
+        }
+        main { max-width:980px; margin:0 auto; padding:24px 16px; }
+        h1,h2,h3 { margin:12px 0; }
+        hr { margin:20px 0; }
+        pre,code {
+            font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace;
+        }
+        code { background:#f4f4f4; padding:2px 4px; border:1px solid #ddd; border-radius:2px; }
+        pre { background:#f4f4f4; border:1px solid #ddd; border-radius:2px; padding:12px; overflow:auto; }
+        table { border-collapse:collapse; width:100%; }
+        th,td { border:1px solid #333; padding:8px; text-align:left; vertical-align:top; }
+        ul,ol { margin:8px 0 8px 22px; }
+        .small { color:#333; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Chinese Chess · Instructions and Rules</h1>
+    <hr />
+
+    <h2>0. Basic Operation (applies to all modes)</h2>
+    <ol>
+        <li>Use the <strong>left mouse button</strong> to click the piece you want to move (it will highlight or be shown in the status bar).</li>
+        <li>Then <strong>click the target square</strong>. If the move is legal, it will be executed immediately; if illegal, the interface will display “Illegal Move” and the board will <strong>not update</strong>.</li>
+        <li>If you are in check, you <strong>must resolve the check first</strong> (by capturing, blocking, or moving away). Any other attempt will be judged illegal.</li>
+    </ol>
+
+    <h2>1. Game Modes</h2>
+    <table>
+        <thead>
+        <tr><th>Mode</th><th>Page</th><th>Basic Rule</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Player vs Player</td>
+            <td><code>individual.html</code></td>
+            <td>Red moves first, then Black. Click piece → click destination; players alternate turns.</td>
+            <td>Suitable for teaching and replay. Undo or restart buttons can be used if available.</td>
+        </tr>
+        <tr>
+            <td>Player vs AI</td>
+            <td><code>play.html</code></td>
+            <td>You play Red by default. If you choose Black, the AI moves first. Each of your moves triggers an AI response.</td>
+            <td>The page often shows “Best Move” compared to your move. Illegal moves are blocked and recorded.</td>
+        </tr>
+        <tr>
+            <td>Endgame Mode</td>
+            <td><code>endgame.html</code></td>
+            <td>Upon selecting a level, the board loads a preset position. <strong>Red always moves first.</strong> You attempt to checkmate the AI, and the AI tries to escape or counterattack.</td>
+            <td>The AI can only use the pieces present on the board. Switching levels doesn’t affect other modes.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>2. Board and Coordinates (a3e4 notation & internal coordinates)</h2>
+    <ul>
+        <li>The board is a <strong>9 × 10</strong> grid of intersections.</li>
+        <li><strong>Algebraic/Log format:</strong> Columns are labeled <code>a..i</code> (from Red’s left to right), rows <code>0..9</code> (from Black’s base downward).
+            A move is written as <code>from+to</code>, e.g., <code>a3e4</code> means moving from <code>a3</code> to <code>e4</code>.</li>
+        <li><strong>Internal coordinates:</strong> Zero-based <code>{x:0..8, y:0..9}</code>, where <code>x</code> is the column, <code>y</code> the row. Top edge is <code>y=0</code>, bottom is <code>y=9</code>.</li>
+        <li><strong>Conversion:</strong> <code>x = fileChar - 'a'</code>; <code>y = rankNumber</code>. Example: <code>{x:0,y:3} ⇔ a3</code>.</li>
+    </ul>
+
+    <h2>3. Piece Movement and Rules</h2>
+
+    <!-- King / General -->
+    <div style="text-align:center;margin-top:20px;">
+        <img src="images/RK.GIF" alt="Red King" style="width:60px;margin:5px;">
+        <img src="images/BK.GIF" alt="Black General" style="width:60px;margin:5px;">
+    </div>
+    <p><b>King (General)</b>: Moves one step vertically or horizontally within the 3×3 palace. Cannot leave the palace.
+        The two Kings cannot face each other directly on the same file with no pieces between them.</p>
+
+    <!-- Advisor / Guard -->
+    <div style="text-align:center;margin-top:20px;">
+        <img src="images/RA.GIF" alt="Red Advisor" style="width:60px;margin:5px;">
+        <img src="images/BA.GIF" alt="Black Guard" style="width:60px;margin:5px;">
+    </div>
+    <p><b>Advisor (Guard)</b>: Moves one step diagonally within the palace. Cannot leave the 3×3 area. Mainly protects the King.</p>
+
+    <!-- Elephant -->
+    <div style="text-align:center;margin-top:20px;">
+        <img src="images/RB.GIF" alt="Red Elephant" style="width:60px;margin:5px;">
+        <img src="images/BB.GIF" alt="Black Elephant" style="width:60px;margin:5px;">
+    </div>
+    <p><b>Elephant</b>: Moves exactly two points diagonally (“Elephant’s eye”). The midpoint must be empty;
+        Red elephants cannot cross the river, and Black elephants cannot cross the river.</p>
+
+    <!-- Horse -->
+    <div style="text-align:center;margin-top:20px;">
+        <img src="images/RN.GIF" alt="Red Horse" style="width:60px;margin:5px;">
+        <img src="images/BN.GIF" alt="Black Horse" style="width:60px;margin:5px;">
+    </div>
+    <p><b>Horse</b>: Moves one step straight and then one step diagonally outward (L-shape).
+        If the first adjacent point is occupied, that direction is blocked (“leg-blocked horse”).</p>
+
+    <!-- Rook -->
+    <div style="text-align:center;margin-top:20px;">
+        <img src="images/RR.GIF" alt="Red Rook" style="width:60px;margin:5px;">
+        <img src="images/BR.GIF" alt="Black Rook" style="width:60px;margin:5px;">
+    </div>
+    <p><b>Rook</b>: Moves any number of points horizontally or vertically in straight lines. Cannot jump over pieces.
+        It captures any enemy piece on the same rank or file.</p>
+
+    <!-- Cannon -->
+    <div style="text-align:center;margin-top:20px;">
+        <img src="images/RC.GIF" alt="Red Cannon" style="width:60px;margin:5px;">
+        <img src="images/BC.GIF" alt="Black Cannon" style="width:60px;margin:5px;">
+    </div>
+    <p><b>Cannon</b>: Moves like the Rook when not capturing. To capture, it must jump over exactly one piece (“the screen”).</p>
+
+    <!-- Soldier -->
+    <div style="text-align:center;margin-top:20px;">
+        <img src="images/RP.GIF" alt="Red Soldier" style="width:60px;margin:5px;">
+        <img src="images/BP.GIF" alt="Black Soldier" style="width:60px;margin:5px;">
+    </div>
+    <p><b>Soldier (Pawn)</b>: Before crossing the river, can only move forward one step.
+        After crossing the river, it can move forward or sideways one step. It can never move backward.</p>
+
+    <h3>Victory Conditions</h3>
+    <ul>
+        <li><b>Checkmate:</b> The opponent is in check and has no legal moves to escape — you win.</li>
+        <li><b>Stalemate:</b> The opponent is not in check but has no legal move — usually a draw (configurable).</li>
+        <li><b>Perpetual Check / Chase:</b> If the same position repeats endlessly, it may be ruled a draw or a loss depending on settings.</li>
+    </ul>
+
+    <h2>4. Backend Communication (All use POST /api/xq/*)</h2>
+    <table>
+        <thead>
+        <tr><th>Endpoint</th><th>Purpose</th><th>Request Example</th><th>Return Fields</th></tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>/api/xq/new</code></td>
+            <td>Start a new game or load a FEN (endgame).</td>
+            <td>
+          <pre>{
+  "side": "RED",          // optional: which side you play
+  "fen": "optional FEN"   // leave empty for initial position
+}</pre>
+            </td>
+            <td><code>fen</code>, <code>turn</code>, <code>legalMoves</code>, etc.</td>
+        </tr>
+        <tr>
+            <td><code>/api/xq/move</code></td>
+            <td>Submit a move (player or AI).</td>
+            <td>
+          <pre>{
+  "fromX": 0, "fromY": 3,
+  "toX": 4,   "toY": 4,
+  "side": "RED",
+  "turn": 12
+}
+// If backend supports UCI format:
+{ "uci": "a3e4" }</pre>
+            </td>
+            <td><code>ok</code> (boolean), <code>reason</code>, <code>fen</code>, <code>lastMove</code>, <code>check</code>, <code>mate</code></td>
+        </tr>
+        <tr>
+            <td><code>/api/xq/ai</code></td>
+            <td>Request AI to return its best move.</td>
+            <td>
+          <pre>{
+  "sideToMove": "BLACK",
+  "depth": 8,
+  "fen": "current FEN position"
+}</pre>
+            </td>
+            <td><code>aiMove</code> (e.g. <code>{"from":{"x":0,"y":6},"to":{"x":0,"y":5}}</code> or <code>"a7a6"</code>), <code>bestLine</code>, <code>score</code></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>Frontend Fetch Example</h3>
+    <pre>// JSON fetch example
+await fetch("/api/xq/move", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ fromX:0, fromY:3, toX:4, toY:4, side:"RED", turn:12 })
+}).then(r => r.json());
+
+// If UCI notation is supported:
+await fetch("/api/xq/move", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ uci: "a3e4" })
+});</pre>
+
+    <h3>cURL Example</h3>
+    <pre>curl -X POST http://localhost:8080/api/xq/move \
+  -H "Content-Type: application/json" \
+  -d '{"fromX":0,"fromY":3,"toX":4,"toY":4,"side":"RED","turn":12}'</pre>
+
+    <h2>5. Quick Tips for Players</h2>
+    <ol>
+        <li>Always check if you are in check — you must respond first.</li>
+        <li>Rooks move in straight lines; Cannons capture only by jumping over one piece; Horses avoid leg-blocks; Elephants cannot cross the river; Advisors stay inside the palace; Soldiers never move backward.</li>
+        <li>Avoid “facing kings” — both Kings cannot be on the same file without a blocking piece.</li>
+        <li>In endgame puzzles, look for tactical patterns like check, pin, discovered attack, and mating nets.
+            In vs-AI mode, compare your move with the “Best Move” suggestion for learning.</li>
+    </ol>
+
+</main>
+</body>
+</html>
