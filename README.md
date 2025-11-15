@@ -46,4 +46,48 @@ This project provides:
 - Smooth animations  
 - Responsive layout
 
----
+### **Project Structure**
+src/
+└── main/
+├── java/com.example.xiangqi/
+│ ├── engine/ EngineService.java
+│ ├── game/ XqEndgameJudge.java, XqIndividualJuge.java, XqPlayJuge.java, XqRules.java
+│ ├── web/ XiangqiApplication.java
+│ 
+│
+├── resources/
+│ ├── CSV_Endgame_ZeroShot/endgame_total_steps.csv
+│ ├── CSV_Individual_ZeroShot_Red/
+│ ├── CSV_Individual_ZeroShot_Black/
+│ └── CSV_Xq_ZeroShot/
+│ ├── engine/ pikafish.nnue, pikafish-avx2.exe
+│
+└── static/
+├── images/ # Piece & board assets
+├── index.html
+├── play.html
+├── endgame.html
+├── individual.html
+└── Rules.html
+
+### **Open the Front-End**
+http://localhost:8080/index.html
+
+## **Screenshots**
+
+Below are some previews of the system in action:
+
+### Main Menu
+![Main Menu](screenshots/menu.png)
+
+### Human vs AI Gameplay
+![Gameplay](screenshots/gameplay.png)
+
+### Endgame Mode
+![Endgame](screenshots/endgame.png)
+
+### Move Record & Best Move Comparison
+![Move Records](screenshots/records.png)
+
+### Board Rendering (Canvas)
+![Board](screenshots/board.png)
