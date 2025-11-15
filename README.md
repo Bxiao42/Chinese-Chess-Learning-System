@@ -86,8 +86,5 @@ Below are some previews of the system in action:
 ### Endgame Mode
 ![Endgame](screenshots/endgame.png)
 
-### Move Record & Best Move Comparison
-![Move Records](screenshots/records.png)
-
-### Board Rendering (Canvas)
-![Board](screenshots/board.png)
+### human vs human
+![human vs human](screenshots/human.png)
